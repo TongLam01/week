@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>公司专题知识库</title>
+  <title>周报专题知识库</title>
   <style>
     :root {
       --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text2: #475569;
@@ -343,7 +343,7 @@
 
   <!-- 顶部标题栏：标题靠左，菜单按钮在右上角 -->
   <header class="app-header">
-    <h1>公司专题知识库</h1>
+    <h1>周报专题知识库</h1>
     <div class="header-actions">
       <span id="sessionBadge" class="session-dot"></span>
       <button class="menu-btn" onclick="openDrawer()">☰</button>
@@ -748,12 +748,12 @@
     function buildCopyText(messages, single = false) {
       const lines = [];
       if (!single) {
-        lines.push('【公司专题知识库 · 问答记录】');
+        lines.push('【周报专题知识库 · 问答记录】');
         lines.push('生成时间：' + new Date().toLocaleString('zh-CN'));
         lines.push('');
       }
       messages.forEach((msg, i) => {
-        if (single) lines.push('【公司专题知识库 · 单轮问答】');
+        if (single) lines.push('【周报专题知识库 · 单轮问答】');
         else lines.push(`──────── 第${i+1}轮 ────────`);
         lines.push('问：' + msg.question);
         let ans = msg.answer
@@ -766,7 +766,7 @@
       });
       if (!single) {
         lines.push('────────');
-        lines.push('来自：公司专题知识库');
+        lines.push('来自：周报专题知识库');
         lines.push('提示：引用文件需在浏览器登录秘塔后查看');
       }
       return lines.join('\n');
