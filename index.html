@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>公司专题知识库</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text2: #475569;
+      --muted: #94a3b8; --border: #e2e8f0; --primary: #3b82f6;
+      --primary-light: #eff6ff; --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,0.04);
+      --user-bubble: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.65;
+      max-width: 800px; margin: 0 auto;
+      padding: 68px 16px 90px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 顶部固定标题栏 ===== */
+    .app-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border); height: 56px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 16px; max-width: 800px; margin: 0 auto;
+    }
+    .app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .header-actions { 
+      position: absolute; 
+      right: 16px; 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+    }
+    .menu-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border); background: #f8fafc;
+      color: var(--text2); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .session-dot {
+      display: none;
+      width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15);
+    }
+
+    /* ===== 抽屉遮罩 & 抽屉（右侧滑出） ===== */
+    .drawer-overlay {
+      display: none; position: fixed; inset: 0; z-index: 150;
+      background: rgba(0,0,0,.35);
+    }
+    .drawer-overlay.show { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(320px, 85vw); background: var(--card);
+      box-shadow: -4px 0 24px rgba(0,0,0,.12);
+      transform: translateX(100%); transition: transform .3s ease;
+      z-index: 160; display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-header {
+      padding: 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .drawer-title { font-size: 16px; font-weight: 700; }
+    .drawer-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: #f8fafc;
+      color: var(--text2); cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 8px 0 20px; }
+
+    .drawer-section { margin-bottom: 4px; }
+    .drawer-section-title {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px;
+      padding: 12px 16px 6px;
+    }
+    .drawer-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      padding: 0 16px 8px;
+    }
+    .drawer-action-btn {
+      padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: #fff; color: var(--text); font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .drawer-action-btn:active { background: #f8fafc; }
+
+    .setting-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; cursor: pointer; transition: background .15s;
+    }
+    .setting-row:active { background: #f8fafc; }
+    .setting-icon { font-size: 16px; width: 24px; text-align: center; }
+    .setting-label { flex: 1; font-size: 14px; color: var(--text); }
+    .setting-arrow { color: var(--muted); font-size: 16px; }
+    .setting-status { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+    .mode-selector {
+      display: flex; gap: 8px; padding: 0 16px 12px;
+    }
+    .mode-chip {
+      flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border);
+      background: #fff; color: var(--text2); font-size: 13px; cursor: pointer;
+      text-align: center; font-weight: 500; transition: all .2s;
+    }
+    .mode-chip.active {
+      background: var(--primary-light); color: var(--primary);
+      border-color: var(--primary); font-weight: 600;
+    }
+
+    .drawer-list { padding: 0 16px; }
+    .drawer-item {
+      padding: 12px; border-radius: 10px; cursor: pointer;
+      border: 1px solid transparent; transition: all .15s;
+      margin-bottom: 6px; position: relative; background: #f8fafc;
+    }
+    .drawer-item:hover { border-color: var(--border); }
+    .drawer-item.active {
+      background: var(--primary-light); border-color: #bfdbfe;
+    }
+    .drawer-item-title {
+      font-size: 14px; font-weight: 500; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px; padding-right: 20px;
+    }
+    .drawer-item-meta {
+      font-size: 12px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .drawer-item-del {
+      position: absolute; top: 8px; right: 8px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #fee2e2; color: #ef4444; font-size: 12px;
+      display: none; align-items: center; justify-content: center;
+      cursor: pointer; border: none;
+    }
+    .drawer-item:hover .drawer-item-del { display: flex; }
+    .drawer-empty {
+      padding: 24px; text-align: center; font-size: 13px; color: var(--muted);
+    }
+
+    /* ===== 对话内容区 ===== */
+    .chat-history { margin-bottom: 8px; }
+    .turn { margin-bottom: 18px; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .turn-user { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+    .bubble-user {
+      background: var(--user-bubble); color: #fff;
+      padding: 10px 14px; border-radius: 14px 14px 4px 14px;
+      font-size: 15px; max-width: 85%; word-wrap: break-word; line-height: 1.5;
+    }
+    
+    .turn-ai { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+    .turn-ai-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .turn-ai .label { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .8px; }
+    .turn-actions { display: flex; gap: 10px; }
+    .turn-actions button {
+      font-size: 12px; color: var(--muted); background: none; border: none;
+      cursor: pointer; padding: 2px 4px;
+    }
+    .turn-actions button:hover { color: var(--primary); }
+    
+    .answer-body { font-size: 15.5px; color: var(--text); line-height: 1.75; }
+    .answer-body .line { margin-bottom: 8px; overflow-wrap: break-word; word-break: break-word; }
+    .answer-body ul { margin: 8px 0 8px 20px; }
+    .answer-body li { margin-bottom: 5px; }
+    .answer-body strong { color: #000; font-weight: 600; }
+    
+    .cite {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 4px;
+      background: var(--primary-light); color: var(--primary);
+      border-radius: 5px; font-size: 11px; font-weight: 700;
+      cursor: pointer; margin-left: 3px; vertical-align: super; line-height: 1;
+    }
+    .cite:hover { background: #dbeafe; }
+    
+    .fig {
+      margin: 10px 0; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: #f8fafc; width: 100%;
+    }
+    .fig img {
+      max-height: 180px; width: 100%;
+      display: block; cursor: zoom-in; object-fit: cover;
+    }
+    .fig .fig-cap { font-size: 12px; color: var(--muted); padding: 6px 10px; border-top: 1px solid var(--border); }
+    .fig-fallback { display: none; padding: 14px; text-align: center; }
+    .fig-fallback .ref-link { font-size: 13px; }
+    
+    .sources { margin-top: 10px; }
+    .sources-toggle {
+      font-size: 13px; color: var(--primary); cursor: pointer;
+      font-weight: 500; padding: 4px 0;
+      display: inline-flex; align-items: center; gap: 6px; user-select: none;
+    }
+    .sources-toggle::before {
+      content: '▶'; font-size: 10px; color: var(--muted);
+      transition: transform .2s;
+    }
+    .sources-toggle.open::before { transform: rotate(90deg); color: var(--primary); }
+    .sources-content { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+    .sources-content.show { display: block; }
+    .sources-content .s-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+    .ref { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; transition: background .2s; }
+    .ref.hl { background: #eff6ff; border-color: #bfdbfe; }
+    .ref-index {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 5px;
+      background: var(--primary-light); color: var(--primary);
+      border-radius: 5px; font-size: 11px; font-weight: 700;
+      margin-right: 6px; vertical-align: middle;
+    }
+    .ref-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; overflow-wrap: break-word; }
+    .ref-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .ref-meta span { margin-right: 8px; }
+    .ref-link { font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 500; cursor: pointer; }
+    .ref-link:hover { text-decoration: underline; }
+
+    /* ===== 底部固定输入区（极简） ===== */
+    .input-sticky {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(248,250,252,.95); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border); padding: 10px 16px 24px;
+      z-index: 50;
+    }
+    .input-inner { max-width: 800px; margin: 0 auto; }
+    .ask-row { display: flex; gap: 10px; align-items: center; }
+    .ask-row input {
+      flex: 1; padding: 12px 18px; font-size: 16px; border: 1px solid var(--border);
+      border-radius: 24px; background: #fff; color: var(--text); outline: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .ask-row input:focus { border-color: var(--primary); }
+    .send-btn {
+      width: 48px; height: 48px; border-radius: 50%; border: none;
+      background: var(--primary); color: #fff; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(59,130,246,.25);
+      transition: transform .1s;
+    }
+    .send-btn:active { transform: scale(0.92); }
+    .send-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    /* ===== 话题切换提示 ===== */
+    .topic-check {
+      display: none;
+      background: #fffbeb; border: 1px solid #f59e0b;
+      border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .topic-check.show { display: block; animation: slideUp 0.25s ease; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .topic-check-text { font-size: 14px; color: #92400e; margin-bottom: 10px; font-weight: 500; line-height: 1.5; }
+    .topic-check-actions { display: flex; gap: 8px; }
+    .topic-check-actions button {
+      flex: 1; padding: 8px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .topic-check-actions .btn-new { background: var(--primary); color: #fff; }
+    .topic-check-actions .btn-keep { background: #fff; color: var(--text2); border: 1px solid var(--border); }
+
+    /* ===== 灯箱 & 模态框 ===== */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.88); justify-content: center; align-items: center;
+      cursor: zoom-out;
+    }
+    .lightbox.show { display: flex; }
+    .lightbox img {
+      max-width: 92vw; max-height: 92vh;
+      border-radius: 8px; object-fit: contain;
+      cursor: default; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    .lightbox .close-btn {
+      position: absolute; top: 16px; right: 16px;
+      color: #fff; font-size: 28px; cursor: pointer;
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: rgba(255,255,255,.1);
+    }
+    
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.55); justify-content: center; align-items: center;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--card); border-radius: 16px;
+      padding: 24px; max-width: 380px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      animation: modalIn .25s ease;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; text-align: center; }
+    .modal-text { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; text-align: center; }
+    .modal-btn {
+      display: block; width: 100%; padding: 11px;
+      border-radius: 10px; border: none; font-size: 15px;
+      font-weight: 600; cursor: pointer; text-align: center;
+      text-decoration: none; margin-bottom: 10px;
+    }
+    .modal-btn.primary { background: var(--primary); color: #fff; }
+    .modal-btn.secondary { background: #f8fafc; color: var(--text2); border: 1px solid var(--border); }
+    .modal-check {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text2); margin: 8px 0 4px;
+      cursor: pointer; user-select: none;
+    }
+    .modal-check input { width: 16px; height: 16px; cursor: pointer; }
+    
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,.78); color: #fff; padding: 12px 20px;
+      border-radius: 10px; font-size: 14px; z-index: 300;
+      pointer-events: none; opacity: 0; transition: opacity .3s;
+    }
+    .toast.show { opacity: 1; }
+    
+    .error { color: #ef4444; margin-top: 8px; font-size: 14px; }
+    .status .dot { display: inline-block; width: 7px; height: 7px; background: var(--primary); border-radius: 50%; margin-right: 6px; vertical-align: middle; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    @media (max-width: 640px) {
+      body { padding: 68px 12px 90px; }
+      .app-header h1 { font-size: 16px; }
+      .drawer { width: 82vw; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部标题栏：标题靠左，菜单按钮在右上角 -->
+  <header class="app-header">
+    <h1>公司专题知识库</h1>
+    <div class="header-actions">
+      <span id="sessionBadge" class="session-dot"></span>
+      <button class="menu-btn" onclick="openDrawer()">☰</button>
+    </div>
+  </header>
+
+  <!-- 右侧综合抽屉 -->
+  <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div id="drawer" class="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">菜单</div>
+      <button class="drawer-close" onclick="closeDrawer()">×</button>
+    </div>
+    <div class="drawer-body">
+      
+      <!-- 快捷操作 -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">操作</div>
+        <div class="drawer-actions">
+          <button class="drawer-action-btn" onclick="newChat();closeDrawer();">
+            <span>+</span><span>新建对话</span>
+          </button>
+          <button class="drawer-action-btn" onclick="copyConversation();closeDrawer();">
+            <span>📋</span><span>复制全部</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 设置 -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">设置</div>
+        
+        <div class="setting-row" onclick="openPwdModal();closeDrawer();">
+          <span class="setting-icon">🔑</span>
+          <span class="setting-label">专题密码</span>
+          <span class="setting-arrow">›</span>
+        </div>
+
+        <div class="setting-row" style="cursor:default;">
+          <span class="setting-icon">⚡</span>
+          <span class="setting-label">回答模式</span>
+        </div>
+        <div class="mode-selector">
+          <button class="mode-chip" data-mode="concise" onclick="selectMode('concise')">简洁</button>
+          <button class="mode-chip active" data-mode="detail" onclick="selectMode('detail')">深入</button>
+          <button class="mode-chip" data-mode="research" onclick="selectMode('research')">研究</button>
+        </div>
+
+        <div class="setting-row" onclick="toggleNewTopic()">
+          <span class="setting-icon">🔄</span>
+          <span class="setting-label">新话题模式</span>
+          <span class="setting-status" id="drawerNewTopicStatus">已关闭</span>
+        </div>
+      </div>
+
+      <!-- 历史记录 -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">历史记录</div>
+        <div id="drawerList" class="drawer-list">
+          <div class="drawer-empty">暂无历史记录</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 对话内容 -->
+  <div id="chatHistory" class="chat-history"></div>
+
+  <!-- 底部输入区 -->
+  <div class="input-sticky">
+    <div class="input-inner">
+      <div id="topicCheck" class="topic-check">
+        <div class="topic-check-text">检测到可能切换了话题，是否新建对话？</div>
+        <div class="topic-check-actions">
+          <button class="btn-new" onclick="confirmNewTopic()">新建对话</button>
+          <button class="btn-keep" onclick="cancelNewTopic()">继续追问</button>
+        </div>
+      </div>
+      <div class="ask-row">
+        <input id="question" type="text" placeholder="输入问题，按回车发送" autocomplete="off">
+        <button class="send-btn" onclick="ask()" id="btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 灯箱 -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+    <div class="close-btn" onclick="closeLightbox(event)">×</div>
+    <img id="lightboxImg" src="" alt="放大查看" onclick="event.stopPropagation()">
+  </div>
+
+  <!-- 登录提示模态框 -->
+  <div id="loginModal" class="modal-overlay" onclick="closeLoginModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">查看引用文件</div>
+      <div class="modal-text">该文件存储在秘塔知识库，需登录后访问。</div>
+      <a class="modal-btn primary" href="https://metaso.cn/topic/8583256801609265152" target="_blank" rel="noopener">前往登录</a>
+      <button class="modal-btn secondary" onclick="continueOpenFile()">我已登录，直接打开</button>
+      <label class="modal-check">
+        <input type="checkbox" id="skipLoginCheck">
+        本次不再询问（刷新后恢复）
+      </label>
+      <button class="modal-btn secondary" onclick="closeLoginModal()" style="margin-top:6px;">关闭</button>
+    </div>
+  </div>
+
+  <!-- 密码模态框 -->
+  <div id="pwdModal" class="modal-overlay" onclick="closePwdModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">专题访问密码</div>
+      <div id="pwdModalInputSection">
+        <input id="pwdModalField" type="password" placeholder="输入专题访问密码" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;font-size:15px;outline:none;">
+        <button class="modal-btn primary" onclick="savePwdFromModal()">保存密码</button>
+      </div>
+      <div id="pwdModalSavedSection" style="display:none;">
+        <div style="text-align:center;color:#10b981;font-size:14px;font-weight:500;margin-bottom:12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+          已保存密码
+        </div>
+        <button class="modal-btn secondary" onclick="clearPwdFromModal()">清除密码</button>
+      </div>
+      <button class="modal-btn secondary" onclick="closePwdModal()" style="margin-top:8px;">关闭</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORAGE_KEY_PWD = 'mita_topic_pwd';
+    const STORAGE_KEY_HIST = 'mita_chat_history_v3';
+    const STORAGE_KEY_CURR = 'mita_current_chat_id';
+    const SESSION_SKIP_LOGIN = 'mita_skip_login_check';
+    const TOPIC_URL = 'https://metaso.cn/topic/8583256801609265152';
+    
+    let sessionId = null;
+    let chatHistory = [];
+    let currentChatId = null;
+    let isAnswering = false;
+    let pendingFileUrl = '';
+    let pendingQuestion = '';
+    let forceNewTopic = false;
+    let currentMode = 'detail';
+    
+    function selectMode(mode) {
+      currentMode = mode;
+      const labels = { concise: '简洁', detail: '深入', research: '研究' };
+      document.querySelectorAll('.mode-chip').forEach(el => {
+        el.classList.toggle('active', el.dataset.mode === mode);
+      });
+      showToast('已切换为：' + labels[mode]);
+    }
+    
+    function toggleNewTopic() {
+      forceNewTopic = !forceNewTopic;
+      const status = document.getElementById('drawerNewTopicStatus');
+      if (forceNewTopic) {
+        if (status) { status.textContent = '已开启'; status.style.color = '#22c55e'; }
+        showToast('已开启：下一轮将新建对话');
+      } else {
+        if (status) { status.textContent = '已关闭'; status.style.color = '#94a3b8'; }
+      }
+    }
+    
+    function getPwd() { return localStorage.getItem(STORAGE_KEY_PWD) || ''; }
+    function openPwdModal() {
+      const has = !!getPwd();
+      document.getElementById('pwdModalInputSection').style.display = has ? 'none' : 'block';
+      document.getElementById('pwdModalSavedSection').style.display = has ? 'block' : 'none';
+      document.getElementById('pwdModal').classList.add('show');
+      document.body.style.overflow = 'hidden';
+      if (!has) setTimeout(() => document.getElementById('pwdModalField').focus(), 50);
+    }
+    function closePwdModal(e) {
+      if (e && e.target !== document.getElementById('pwdModal')) return;
+      document.getElementById('pwdModal').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    function savePwdFromModal() {
+      const v = document.getElementById('pwdModalField').value.trim();
+      if (!v) return;
+      localStorage.setItem(STORAGE_KEY_PWD, v);
+      document.getElementById('pwdModalInputSection').style.display = 'none';
+      document.getElementById('pwdModalSavedSection').style.display = 'block';
+      document.getElementById('pwdModalField').value = '';
+      showToast('密码已保存');
+    }
+    function clearPwdFromModal() {
+      localStorage.removeItem(STORAGE_KEY_PWD);
+      document.getElementById('pwdModalField').value = '';
+      document.getElementById('pwdModalInputSection').style.display = 'block';
+      document.getElementById('pwdModalSavedSection').style.display = 'none';
+      showToast('密码已清除');
+    }
+    
+    function shouldSkipLoginCheck() {
+      return sessionStorage.getItem(SESSION_SKIP_LOGIN) === '1';
+    }
+    function handleFileLink(url) {
+      if (shouldSkipLoginCheck()) {
+        window.open(url, '_blank');
+        return;
+      }
+      pendingFileUrl = url || '';
+      document.getElementById('loginModal').classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLoginModal(e) {
+      if (e && e.target !== document.getElementById('loginModal')) return;
+      document.getElementById('loginModal').classList.remove('show');
+      document.body.style.overflow = '';
+      pendingFileUrl = '';
+    }
+    function continueOpenFile() {
+      const skip = document.getElementById('skipLoginCheck').checked;
+      if (skip) sessionStorage.setItem(SESSION_SKIP_LOGIN, '1');
+      closeLoginModal();
+      if (pendingFileUrl) {
+        window.open(pendingFileUrl, '_blank');
+        pendingFileUrl = '';
+      }
+    }
+    
+    function openDrawer() {
+      document.getElementById('drawerOverlay').classList.add('show');
+      document.getElementById('drawer').classList.add('open');
+      renderDrawerList();
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+      document.getElementById('drawerOverlay').classList.remove('show');
+      document.getElementById('drawer').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function renderDrawerList() {
+      const list = getHistory();
+      const container = document.getElementById('drawerList');
+      if (!list.length) {
+        container.innerHTML = '<div class="drawer-empty">暂无历史记录</div>';
+        return;
+      }
+      container.innerHTML = list.slice().reverse().map(h => {
+        const isActive = h.id === currentChatId;
+        const time = new Date(h.timestamp).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+        const count = (h.messages?.length || 0) + ' 轮';
+        return `
+          <div class="drawer-item ${isActive ? 'active' : ''}" onclick="loadHistory('${h.id}');closeDrawer();">
+            <div class="drawer-item-title">${escapeHtml(h.title)}</div>
+            <div class="drawer-item-meta">
+              <span>${time}</span>
+              <span>${count}</span>
+            </div>
+            <button class="drawer-item-del" onclick="event.stopPropagation();deleteHistory('${h.id}')" title="删除">×</button>
+          </div>`;
+      }).join('');
+    }
+    
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY_HIST) || '[]'); }
+      catch { return []; }
+    }
+    function saveHistoryToStore(list) {
+      const trimmed = list.slice(-10);
+      localStorage.setItem(STORAGE_KEY_HIST, JSON.stringify(trimmed));
+      renderDrawerList();
+    }
+    function saveCurrentChat() {
+      if (!chatHistory.length) return;
+      const list = getHistory();
+      const title = chatHistory[0].question.slice(0, 20) || '未命名对话';
+      const existingIdx = list.findIndex(h => h.id === currentChatId);
+      const record = {
+        id: currentChatId || 'chat-' + Date.now(),
+        title: title,
+        timestamp: Date.now(),
+        messages: JSON.parse(JSON.stringify(chatHistory)),
+        sessionId: sessionId
+      };
+      if (existingIdx >= 0) list[existingIdx] = record;
+      else { list.push(record); currentChatId = record.id; }
+      saveHistoryToStore(list);
+      localStorage.setItem(STORAGE_KEY_CURR, currentChatId);
+    }
+    function loadHistory(id) {
+      if (chatHistory.length) saveCurrentChat();
+      const list = getHistory();
+      const record = list.find(h => h.id === id);
+      if (!record) return;
+      currentChatId = record.id;
+      chatHistory = JSON.parse(JSON.stringify(record.messages));
+      sessionId = record.sessionId || null;
+      localStorage.setItem(STORAGE_KEY_CURR, currentChatId);
+      renderChatFromMemory();
+      const badge = document.getElementById('sessionBadge');
+      if (badge) badge.style.display = sessionId ? 'inline-block' : 'none';
+      renderDrawerList();
+      setTimeout(() => {
+        const last = document.querySelector('.turn:last-child');
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 50);
+    }
+    function deleteHistory(id) {
+      let list = getHistory();
+      list = list.filter(h => h.id !== id);
+      saveHistoryToStore(list);
+      if (currentChatId === id) {
+        currentChatId = null; chatHistory = []; sessionId = null;
+        localStorage.removeItem(STORAGE_KEY_CURR);
+        document.getElementById('chatHistory').innerHTML = '';
+        const badge = document.getElementById('sessionBadge');
+        if (badge) badge.style.display = 'none';
+      }
+      renderDrawerList();
+    }
+    function newChat() {
+      hideTopicCheck();
+      pendingQuestion = '';
+      if (chatHistory.length) saveCurrentChat();
+      currentChatId = null; chatHistory = []; sessionId = null;
+      localStorage.removeItem(STORAGE_KEY_CURR);
+      document.getElementById('chatHistory').innerHTML = '';
+      const badge = document.getElementById('sessionBadge');
+      if (badge) badge.style.display = 'none';
+      document.getElementById('question').value = '';
+      renderDrawerList();
+      document.getElementById('question').focus();
+    }
+    
+    const SWITCH_PATTERNS = [
+      /换个话题/i, /另外问/i, /重新问/i, /不说这个/i,
+      /换一个问题/i, /新话题/i, /^#新话题/i, /^#new/i
+    ];
+    function hasSwitchSignal(text) {
+      return SWITCH_PATTERNS.some(p => p.test(text));
+    }
+    function removeSwitchSignals(text) {
+      return text.replace(/^#新话题\s*/i, '').replace(/^(换个话题|另外问|重新问|不说这个|换一个问题|新话题)[，,、:：]?\s*/i, '');
+    }
+    
+    function getBigrams(s) {
+      const clean = s.replace(/[^\u4e00-\u9fa5a-zA-Z]/g, '');
+      const set = new Set();
+      for (let i = 0; i < clean.length - 1; i++) {
+        set.add(clean.slice(i, i + 2));
+      }
+      return set;
+    }
+    
+    function isLikelyNewTopic(current, previous) {
+      if (!previous || !current) return false;
+      const referWords = ['这个', '该', '上述', '刚才', '之前', '上文', '前面', '它', '那', '那些', '这些', '此', '这样'];
+      if (referWords.some(r => current.includes(r))) return false;
+      const prevSet = getBigrams(previous);
+      const currSet = getBigrams(current);
+      for (const bg of currSet) {
+        if (prevSet.has(bg)) return false;
+      }
+      return prevSet.size >= 4 && currSet.size >= 4;
+    }
+    
+    function showTopicCheck(questionPreview) {
+      const el = document.getElementById('topicCheck');
+      const textEl = el.querySelector('.topic-check-text');
+      const shortQ = questionPreview.length > 22 ? questionPreview.slice(0, 22) + '…' : questionPreview;
+      textEl.innerHTML = `「${escapeHtml(shortQ)}」似乎切换了话题，是否新建对话？`;
+      el.classList.add('show');
+    }
+    function hideTopicCheck() {
+      document.getElementById('topicCheck').classList.remove('show');
+    }
+    function confirmNewTopic() {
+      hideTopicCheck();
+      if (chatHistory.length > 0) saveCurrentChat();
+      currentChatId = null; chatHistory = []; sessionId = null;
+      localStorage.removeItem(STORAGE_KEY_CURR);
+      if (!currentChatId) currentChatId = 'chat-' + Date.now();
+      const q = pendingQuestion;
+      pendingQuestion = '';
+      doAsk(q);
+    }
+    function cancelNewTopic() {
+      hideTopicCheck();
+      doAsk(pendingQuestion);
+      pendingQuestion = '';
+    }
+    
+    function copyConversation() {
+      if (!chatHistory.length) { showToast('当前没有对话可复制'); return; }
+      const text = buildCopyText(chatHistory);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制全部对话，请粘贴到微信分享');
+      }).catch(() => showToast('复制失败，请手动长按选择文字复制'));
+    }
+    function copySingleTurn(idx) {
+      const msg = chatHistory[idx];
+      if (!msg) return;
+      const text = buildCopyText([msg], true);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制本轮对话');
+      }).catch(() => showToast('复制失败'));
+    }
+    function buildCopyText(messages, single = false) {
+      const lines = [];
+      if (!single) {
+        lines.push('【公司专题知识库 · 问答记录】');
+        lines.push('生成时间：' + new Date().toLocaleString('zh-CN'));
+        lines.push('');
+      }
+      messages.forEach((msg, i) => {
+        if (single) lines.push('【公司专题知识库 · 单轮问答】');
+        else lines.push(`──────── 第${i+1}轮 ────────`);
+        lines.push('问：' + msg.question);
+        let ans = msg.answer
+          .replace(/\*\*(.+?)\*\*/g, '$1')
+          .replace(/\[\[(\d+)\]\]/g, '[引用$1]')
+          .replace(/!\[\]\(.+?\)/g, '[图片]')
+          .replace(/\n/g, '\n    ');
+        lines.push('答：' + ans);
+        lines.push('');
+      });
+      if (!single) {
+        lines.push('────────');
+        lines.push('来自：公司专题知识库');
+        lines.push('提示：引用文件需在浏览器登录秘塔后查看');
+      }
+      return lines.join('\n');
+    }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    
+    function renderChatFromMemory() {
+      const container = document.getElementById('chatHistory');
+      container.innerHTML = '';
+      const pwd = getPwd();
+      chatHistory.forEach((msg, idx) => {
+        const turnId = 'turn-mem-' + idx;
+        const urefs = dedupeRefs(msg.refs || []);
+        const sourcesHtml = urefs.length ? buildSourcesHtml(urefs, pwd, turnId) : '';
+        container.insertAdjacentHTML('beforeend', `
+          <div class="turn" id="${turnId}">
+            <div class="turn-user"><div class="bubble-user">${escapeHtml(msg.question)}</div></div>
+            <div class="turn-ai">
+              <div class="turn-ai-header">
+                <div class="label">AI 回答</div>
+                <div class="turn-actions">
+                  <button onclick="copySingleTurn(${idx})">📋 复制本轮</button>
+                </div>
+              </div>
+              <div class="answer-body">${renderAnswer(msg.answer, msg.refs || [], pwd, turnId)}</div>
+              ${sourcesHtml}
+            </div>
+          </div>`);
+      });
+    }
+    
+    function buildSourcesHtml(refs, pwd, turnId) {
+      const count = refs.length;
+      return `
+        <div class="sources">
+          <div class="sources-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('show')">
+            引用来源 (${count})
+          </div>
+          <div class="sources-content">
+            <div class="s-label">引用来源</div>
+            ${renderSources(refs, pwd, turnId)}
+          </div>
+        </div>`;
+    }
+    
+    function dedupeRefs(arr) {
+      if (!Array.isArray(arr)) return [];
+      const m = new Map();
+      for (const r of arr) {
+        const id = r.display?.refer_id ?? r.index;
+        if (!m.has(id)) m.set(id, r);
+      }
+      return Array.from(m.values());
+    }
+    function addPwd(url, pwd) {
+      if (!pwd || !url) return url;
+      const s = url.includes('?') ? '&' : '?';
+      return `${url}${s}password=${encodeURIComponent(pwd)}`;
+    }
+    
+    function buildContext(history) {
+      if (!history || history.length === 0) return '';
+      const recent = history.slice(-2);
+      const parts = recent.map((h, i) => {
+        const q = h.question;
+        const a = h.answer.replace(/\n/g, ' ').slice(0, 120);
+        return `上文${i+1}：Q-${q}；A-${a}${h.answer.length > 120 ? '…' : ''}`;
+      });
+      return '【上下文】' + parts.join(' | ') + '\n\n【追问】';
+    }
+    
+    function renderAnswer(text, refs, pwd, turnId) {
+      const urefs = dedupeRefs(refs || []);
+      const refMap = new Map();
+      urefs.forEach((r, i) => {
+        const id = r.display?.refer_id ?? r.index;
+        refMap.set(parseInt(id), i);
+      });
+      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      html = html.replace(/!\[\]\((https?:\/\/[^)\s]+)\)/g, (m, url) => {
+        const u = addPwd(url, pwd);
+        return `<div class="fig"><img src="${u}" alt="截图" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" onclick="openLightbox('${u}')"><div class="fig-fallback"><span class="ref-link" onclick="handleFileLink('${u}')">在新标签页查看截图 →</span></div><div class="fig-cap">📄 引用文档页面截图 · 点击放大</div></div>`;
+      });
+      html = html.replace(/\[\[(\d+)\]\]/g, (m, num) => {
+        const idx = refMap.get(parseInt(num));
+        return idx !== undefined
+          ? `<sup class="cite" onclick="scrollToRef(${idx}, '${turnId}')" title="查看来源 [${num}]">[${num}]</sup>`
+          : `<sup class="cite">[${num}]</sup>`;
+      });
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      const lines = html.split('\n');
+      const out = []; let inList = false;
+      for (const raw of lines) {
+        const line = raw.trimEnd(); const t = line.trim();
+        if (t.startsWith('* ')) {
+          if (!inList) { out.push('<ul>'); inList = true; }
+          out.push('<li>' + t.slice(2) + '</li>');
+        } else {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(t === '' ? '<br>' : `<div class="line">${line}</div>`);
+        }
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+    
+    function renderSources(refs, pwd, turnId) {
+      return refs.map((r, i) => {
+        const title = r.title || '未命名';
+        const meta = [r.article_type, r.page ? `第${r.page}页` : '', r.total_page ? `共${r.total_page}页` : '', r.publish_date]
+          .filter(Boolean).map(s => `<span>${s}</span>`).join('');
+        let fileUrl = r.file_meta?.url ? 'https://metaso.cn' + r.file_meta.url : '';
+        fileUrl = addPwd(fileUrl, pwd);
+        const link = fileUrl
+          ? `<span class="ref-link" onclick="handleFileLink('${fileUrl}')">查看原文 →</span>`
+          : '';
+        return `<div class="ref" id="ref-${turnId}-${i}"><div class="ref-title"><span class="ref-index">${i+1}</span>${title}</div><div class="ref-meta">${meta}</div>${link}</div>`;
+      }).join('');
+    }
+    
+    function scrollToRef(idx, turnId) {
+      const el = document.getElementById(`ref-${turnId}-${idx}`);
+      if (!el) return;
+      const turnEl = document.getElementById(turnId);
+      if (turnEl) {
+        const toggle = turnEl.querySelector('.sources-toggle');
+        const content = turnEl.querySelector('.sources-content');
+        if (toggle) toggle.classList.add('open');
+        if (content) content.classList.add('show');
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('hl');
+      setTimeout(() => el.classList.remove('hl'), 1500);
+    }
+    
+    function openLightbox(src) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightbox').classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox(e) {
+      if (e.target.tagName === 'IMG') return;
+      document.getElementById('lightbox').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    
+    async function processStream(res, onChunk) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let parsedText = '';
+      let parsedRefs = [];
+      let parsedSessionId = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === 'data: [DONE]') continue;
+          let jsonStr = trimmed;
+          if (trimmed.startsWith('data:')) jsonStr = trimmed.slice(5).trim();
+          if (!jsonStr) continue;
+          try {
+            const chunk = JSON.parse(jsonStr);
+            const txt = chunk?.data?.text ?? chunk?.text ?? chunk?.answer ?? chunk?.content;
+            const refs = chunk?.data?.references;
+            const sid = chunk?.data?.sessionId ?? chunk?.sessionId;
+            if (txt && typeof txt === 'string') {
+              if (txt.length >= parsedText.length && txt.startsWith(parsedText)) parsedText = txt;
+              else parsedText += txt;
+            }
+            if (refs && Array.isArray(refs)) parsedRefs = refs;
+            if (sid) parsedSessionId = sid;
+            onChunk(parsedText, parsedRefs, parsedSessionId);
+          } catch {}
+        }
+      }
+      if (buffer.trim()) {
+        let s = buffer.trim();
+        if (s.startsWith('data:')) s = s.slice(5).trim();
+        try {
+          const c = JSON.parse(s);
+          if (c?.data?.text) parsedText = c.data.text;
+          if (c?.data?.references) parsedRefs = c.data.references;
+          if (c?.data?.sessionId) parsedSessionId = c.data.sessionId;
+        } catch {}
+      }
+      return { text: parsedText, refs: parsedRefs, sessionId: parsedSessionId };
+    }
+    
+    function ask() {
+      const input = document.getElementById('question');
+      let question = input.value.trim();
+      if (!question || isAnswering) return;
+      
+      if (forceNewTopic && chatHistory.length > 0) {
+        input.value = '';
+        forceNewTopic = false;
+        const status = document.getElementById('drawerNewTopicStatus');
+        if (status) { status.textContent = '已关闭'; status.style.color = '#94a3b8'; }
+        if (chatHistory.length > 0) saveCurrentChat();
+        currentChatId = null; chatHistory = []; sessionId = null;
+        localStorage.removeItem(STORAGE_KEY_CURR);
+        if (!currentChatId) currentChatId = 'chat-' + Date.now();
+        doAsk(question);
+        return;
+      }
+      
+      if (hasSwitchSignal(question)) {
+        input.value = '';
+        const cleanQuestion = removeSwitchSignals(question);
+        if (chatHistory.length > 0) saveCurrentChat();
+        currentChatId = null; chatHistory = []; sessionId = null;
+        localStorage.removeItem(STORAGE_KEY_CURR);
+        if (!currentChatId) currentChatId = 'chat-' + Date.now();
+        showToast('已切换新话题');
+        doAsk(cleanQuestion);
+        return;
+      }
+      
+      if (chatHistory.length > 0 && isLikelyNewTopic(question, chatHistory[chatHistory.length-1].question)) {
+        pendingQuestion = question;
+        input.value = '';
+        showTopicCheck(question);
+        return;
+      }
+      
+      input.value = '';
+      doAsk(question);
+    }
+    
+    async function doAsk(question) {
+      const btn = document.getElementById('btn');
+      const pwd = getPwd();
+      isAnswering = true;
+      btn.disabled = true;
+      if (!currentChatId) currentChatId = 'chat-' + Date.now();
+      
+      const historyEl = document.getElementById('chatHistory');
+      const turnId = 'turn-' + Date.now();
+      const turnIndex = chatHistory.length;
+      historyEl.insertAdjacentHTML('beforeend', `
+        <div class="turn" id="${turnId}">
+          <div class="turn-user"><div class="bubble-user">${escapeHtml(question)}</div></div>
+          <div class="turn-ai">
+            <div class="turn-ai-header">
+              <div class="label">AI 回答</div>
+              <div class="turn-actions">
+                <button onclick="copySingleTurn(${turnIndex})">📋 复制本轮</button>
+              </div>
+            </div>
+            <div class="answer-body" id="ans-${turnId}"><span class="dot" style="display:inline-block;width:6px;height:6px;background:var(--primary);border-radius:50%;vertical-align:middle;animation:pulse 1.4s infinite;"></span> 思考中…</div>
+            <div class="sources" id="src-${turnId}" style="display:none;"></div>
+          </div>
+        </div>`);
+      setTimeout(() => {
+        const el = document.getElementById(turnId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 50);
+      
+      try {
+        const payload = {
+          question: question,
+          searchTopicId: '8583256801609265152',
+          topicPassword: pwd,
+          model: currentMode
+        };
+        if (sessionId && chatHistory.length === 0) payload.sessionId = sessionId;
+        if (chatHistory.length > 0) payload.question = buildContext(chatHistory) + question;
+        
+        const res = await fetch('/api/metaso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          document.getElementById(`ans-${turnId}`).innerHTML = `<div class="error">HTTP ${res.status}: ${escapeHtml(err.slice(0,200))}</div>`;
+          isAnswering = false; btn.disabled = false; return;
+        }
+        const ansEl = document.getElementById(`ans-${turnId}`);
+        const srcEl = document.getElementById(`src-${turnId}`);
+        const result = await processStream(res, (text, refs, sid) => {
+          if (sid) sessionId = sid;
+          const safe = escapeHtml(text).replace(/\n/g, '<br>');
+          ansEl.innerHTML = `<div class="stream-wrap">${safe}<span style="display:inline-block;width:2px;height:1.1em;background:var(--primary);vertical-align:text-bottom;margin-left:2px;animation:blink 1s step-end infinite;"></span></div>`;
+        });
+        if (result.text) {
+          ansEl.innerHTML = renderAnswer(result.text, result.refs, pwd, turnId);
+          const urefs = dedupeRefs(result.refs);
+          if (urefs.length) {
+            srcEl.innerHTML = buildSourcesHtml(urefs, pwd, turnId);
+            srcEl.style.display = 'block';
+          }
+          chatHistory.push({ question, answer: result.text, refs: result.refs, sessionId: result.sessionId });
+          if (result.sessionId) {
+            sessionId = result.sessionId;
+            const badge = document.getElementById('sessionBadge');
+            if (badge) badge.style.display = sessionId ? 'inline-block' : 'none';
+          }
+          saveCurrentChat();
+          renderDrawerList();
+        } else {
+          ansEl.innerHTML = '<div class="error">未能提取到答案</div>';
+        }
+      } catch (err) {
+        document.getElementById(`ans-${turnId}`).innerHTML = `<div class="error">请求失败：${escapeHtml(err.message)}</div>`;
+      } finally {
+        isAnswering = false;
+        btn.disabled = false;
+        document.getElementById('question').focus();
+      }
+    }
+    
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    document.getElementById('question').addEventListener('keypress', e => {
+      if (e.key === 'Enter') ask();
+    });
+    
+    renderDrawerList();
+    const savedCurrId = localStorage.getItem(STORAGE_KEY_CURR);
+    if (savedCurrId) {
+      const list = getHistory();
+      if (list.find(h => h.id === savedCurrId)) loadHistory(savedCurrId);
+    }
+    document.getElementById('question').focus();
+  </script>
+
+</body>
+</html>
